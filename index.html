@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El problema de Monty Hall — descúbrelo jugando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16161D;
+    --ink2:#1F1F2B;
+    --ink3:#2A2A38;
+    --paper:#F3F2EF;
+    --gold:#C8973F;
+    --gold-deep:#B88A2E;
+    --gold-soft:#EAD9B0;
+    --gray:#9B988F;
+    --line:#3A3A48;
+    --win:#C8973F;
+    --lose:#8E8B82;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Hanken Grotesk',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;justify-content:center;
+    padding:0;
+    background-image:radial-gradient(120% 60% at 50% -10%, #20202c 0%, var(--ink) 55%);
+  }
+  .wrap{width:100%;max-width:540px;padding:28px 22px 60px;min-height:100%}
+
+  .kicker{font-size:11px;letter-spacing:3px;font-weight:700;color:var(--gold);text-transform:uppercase;text-align:center}
+  h1{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(30px,8vw,42px);line-height:1.04;text-align:center;margin:10px 0 0;letter-spacing:-.5px}
+  .sub{font-family:'Fraunces',serif;font-style:italic;font-size:16px;color:var(--gold-soft);text-align:center;margin-top:12px}
+
+  .card{background:var(--ink2);border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:22px}
+
+  .intro p{font-size:16px;line-height:1.55;color:#D8D7D2;margin-bottom:14px}
+  .intro p strong{color:#fff;font-weight:600}
+  .intro .big{font-family:'Fraunces',serif;font-size:19px;font-style:italic;color:#fff;line-height:1.4}
+
+  .prompt{font-family:'Fraunces',serif;font-size:18px;text-align:center;min-height:52px;display:flex;align-items:center;justify-content:center;line-height:1.35;padding:0 6px}
+  .prompt .num{color:var(--gold);font-weight:700;font-style:normal}
+
+  .doors{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 4px}
+  .door{
+    position:relative;aspect-ratio:0.6;border-radius:12px;cursor:pointer;
+    perspective:700px;background:transparent;border:none;padding:0;
+  }
+  .door .panel{
+    position:absolute;inset:0;border-radius:12px;
+    background:linear-gradient(160deg,#fbfbf9,#e9e7e0);
+    border:2px solid #1c1c24;
+    transform-origin:left center;
+    transition:transform .55s cubic-bezier(.4,.0,.2,1), box-shadow .25s, border-color .2s;
+    display:flex;align-items:center;justify-content:center;
+    backface-visibility:hidden;
+    box-shadow:inset -6px 0 14px rgba(0,0,0,.07);
+  }
+  .door .num{font-family:'Fraunces',serif;font-size:30px;color:#6f6d66;font-weight:600}
+  .door .knob{position:absolute;right:9px;top:50%;width:7px;height:7px;border-radius:50%;background:#b3b0a7;transform:translateY(-50%)}
+  .door .behind{
+    position:absolute;inset:0;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:46px;background:radial-gradient(circle at 50% 40%,#dcd9d0,#c6c2b7);border:2px solid #1c1c24;
+    box-shadow:inset 8px 0 16px rgba(0,0,0,.18);
+  }
+  .door.clickable{cursor:pointer}
+  .door.clickable:hover .panel{box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  .door.picked .panel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,151,63,.35)}
+  .door.picked .num{color:var(--gold-deep)}
+  .door.open .panel{transform:rotateY(-105deg)}
+  .door .tag{
+    position:absolute;top:-22px;left:0;right:0;text-align:center;font-size:10px;letter-spacing:2px;
+    font-weight:700;text-transform:uppercase;opacity:0;transition:opacity .3s
+  }
+  .door.picked .tag.you{opacity:1;color:var(--gold)}
+  .door.opened .tag.host{opacity:1;color:var(--gray)}
+
+  .actions{display:flex;gap:12px;margin-top:20px}
+  .btn{
+    flex:1;font-family:'Hanken Grotesk';font-weight:600;font-size:15px;padding:15px 14px;border-radius:12px;
+    border:1px solid var(--line);background:var(--ink3);color:#fff;cursor:pointer;transition:.18s;text-align:center
+  }
+  .btn:hover{transform:translateY(-1px)}
+  .btn.gold{background:var(--gold-deep);border-color:var(--gold);color:#1a1308}
+  .btn.gold:hover{background:var(--gold)}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.4;cursor:default;transform:none}
+  .btn.wide{width:100%}
+
+  .result{text-align:center;margin-top:18px;min-height:30px}
+  .result .r-emoji{font-size:40px}
+  .result .r-text{font-family:'Fraunces',serif;font-size:20px;margin-top:4px}
+  .result .r-text.win{color:var(--gold)}
+  .result .r-text.lose{color:var(--gray)}
+
+  .hint{text-align:center;font-size:13px;color:#7d7b74;margin-top:16px;font-style:italic;font-family:'Fraunces',serif}
+
+  /* stats */
+  .stats-title{font-size:11px;letter-spacing:3px;font-weight:700;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:4px}
+  .stats-sub{text-align:center;font-size:12px;color:#86847d;margin-bottom:16px}
+  .tally{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .tcol{background:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px 12px;text-align:center}
+  .tcol.switch{border-color:rgba(200,151,63,.5);background:linear-gradient(180deg,rgba(200,151,63,.10),rgba(200,151,63,0))}
+  .tcol .lbl{font-size:11px;letter-spacing:2px;font-weight:700;text-transform:uppercase;color:#a7a59d}
+  .tcol.switch .lbl{color:var(--gold)}
+  .tcol .pct{font-family:'Fraunces',serif;font-size:40px;font-weight:700;line-height:1;margin:8px 0 2px}
+  .tcol.switch .pct{color:var(--gold)}
+  .tcol.stay .pct{color:#cfcdc6}
+  .tcol .games{font-size:12px;color:#86847d}
+
+  canvas{width:100%;height:170px;display:block;margin-top:18px;border-radius:10px}
+
+  .scorelines{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+  .sl{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    padding:13px 14px;border-radius:12px;font-size:15px;line-height:1.3;text-align:center}
+  .sl-switch{background:linear-gradient(180deg,rgba(200,151,63,.14),rgba(200,151,63,.04));border:1px solid rgba(200,151,63,.45)}
+  .sl-stay{background:var(--ink);border:1px solid var(--line)}
+  .sl-txt{color:#cdcbc4}
+  .sl b{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:#fff;padding:0 1px}
+  .sl-switch b{color:var(--gold)}
+  .sl-arrow{color:#6f6d66;font-size:17px}
+  .legend{display:flex;justify-content:center;gap:18px;margin-top:8px;font-size:12px;color:#a7a59d}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%}
+
+  .sim{margin-top:16px}
+  .reset{display:block;margin:14px auto 0;background:none;border:none;color:#6c6a63;font-size:12px;cursor:pointer;text-decoration:underline}
+  .hidden{display:none}
+  .footer{text-align:center;margin-top:34px;font-size:11px;letter-spacing:2px;color:#46454e;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Curiosidades matemáticas · Nº 1</div>
+  <h1>El problema<br>de Monty Hall</h1>
+
+  <!-- INTRO -->
+  <div class="card intro" id="intro">
+    <p>Un concurso de televisión. Delante de ti, <strong>tres puertas cerradas</strong>.</p>
+    <p>Detrás de una hay un <strong>coche</strong>. Detrás de las otras dos, <strong>una cabra</strong>.</p>
+    <p>Eliges una puerta. Entonces el presentador —que sabe dónde está el coche— <strong>abre otra puerta y te enseña una cabra</strong>. Y te ofrece una última opción: quedarte con tu puerta… o cambiar a la que queda.</p>
+    <p class="big">¿Da igual lo que hagas? ¿O hay una jugada mejor?</p>
+    <p style="color:#86847d;font-size:14px;margin-top:6px">No te lo voy a decir. Juega unas cuantas veces y míralo tú mismo. 👇</p>
+    <button class="btn gold wide" style="margin-top:8px" onclick="startGame()">Empezar a jugar</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="card hidden" id="game">
+    <div class="prompt" id="prompt">Elige una puerta.</div>
+    <div class="doors" id="doors"></div>
+    <div class="actions hidden" id="decide">
+      <button class="btn ghost" id="stayBtn" onclick="choose(false)">Quedarte</button>
+      <button class="btn gold" id="switchBtn" onclick="choose(true)">Cambiar</button>
+    </div>
+    <div class="result hidden" id="result"></div>
+    <button class="btn gold wide hidden" id="again" style="margin-top:18px" onclick="newRound()">Jugar otra vez</button>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="card hidden" id="stats">
+    <div class="stats-title">Tus resultados</div>
+    <div class="stats-sub">la serie de todas tus partidas</div>
+    <div class="tally">
+      <div class="tcol switch">
+        <div class="lbl">Cambiando</div>
+        <div class="pct" id="switchPct">—</div>
+        <div class="games" id="switchGames">0 partidas</div>
+      </div>
+      <div class="tcol stay">
+        <div class="lbl">Quedándote</div>
+        <div class="pct" id="stayPct">—</div>
+        <div class="games" id="stayGames">0 partidas</div>
+      </div>
+    </div>
+    <div class="scorelines" id="scorelines">
+      <div class="sl sl-switch">
+        <span class="sl-txt">Has cambiado <b id="slSwG">0</b> veces</span>
+        <span class="sl-arrow">→</span>
+        <span class="sl-txt">has acertado <b id="slSwW">0</b></span>
+      </div>
+      <div class="sl sl-stay">
+        <span class="sl-txt">No has cambiado <b id="slStG">0</b> veces</span>
+        <span class="sl-arrow">→</span>
+        <span class="sl-txt">has acertado <b id="slStW">0</b></span>
+      </div>
+    </div>
+    <canvas id="chart" width="900" height="340"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--gold)"></i> Cambiando</span>
+      <span><i class="dot" style="background:#cfcdc6"></i> Quedándote</span>
+    </div>
+    <div class="sim">
+      <button class="btn wide" onclick="simulate(100)">⚡ ¿Sin paciencia? Simula 100 partidas de cada</button>
+    </div>
+    <button class="reset" onclick="resetAll()">Reiniciar resultados</button>
+  </div>
+
+  <div class="footer">Curiosidades matemáticas</div>
+</div>
+
+<script>
+  // ---- state ----
+  let doors = [];        // 'car' | 'goat'
+  let picked = -1;
+  let hostOpened = -1;
+  let phase = 'idle';    // pick | decide | result
+  let stats = {sW:0, wW:0, sS:0, wS:0}; // switch played/won, stay played/won
+  let series = [];       // {sPct, stPct} cumulative, one per game (manual or sim)
+
+  const $ = id => document.getElementById(id);
+
+  function startGame(){
+    $('intro').classList.add('hidden');
+    $('game').classList.remove('hidden');
+    $('stats').classList.remove('hidden');
+    newRound();
+    drawChart();
+  }
+
+  function newRound(){
+    phase = 'pick'; picked = -1; hostOpened = -1;
+    const carPos = Math.floor(Math.random()*3);
+    doors = [0,1,2].map(i => i===carPos ? 'car' : 'goat');
+    $('decide').classList.add('hidden');
+    $('result').classList.add('hidden');
+    $('again').classList.add('hidden');
+    $('prompt').innerHTML = 'Elige una puerta.';
+    $('hint').textContent = totalGames() >= 6 ? '' : 'Pista: no hay pista. Juega y observa los porcentajes.';
+    renderDoors();
+  }
+
+  function renderDoors(){
+    const c = $('doors'); c.innerHTML = '';
+    for(let i=0;i<3;i++){
+      const d = document.createElement('button');
+      d.className = 'door';
+      const isOpen = (i===hostOpened) || (phase==='result');
+      if(i===picked) d.classList.add('picked');
+      if(i===hostOpened) d.classList.add('opened');
+      if(phase==='pick') d.classList.add('clickable');
+      if(isOpen) d.classList.add('open');
+
+      const emoji = doors[i]==='car' ? '🚗' : '🐐';
+      d.innerHTML = `
+        <span class="tag you">Tú</span>
+        <span class="tag host">Abierta</span>
+        <span class="behind">${emoji}</span>
+        <span class="panel"><span class="num">${i+1}</span><span class="knob"></span></span>`;
+      if(phase==='pick') d.onclick = () => pick(i);
+      c.appendChild(d);
+    }
+  }
+
+  function pick(i){
+    if(phase!=='pick') return;
+    picked = i;
+    // host opens a goat door that is not the pick and not the car
+    const options = [0,1,2].filter(k => k!==picked && doors[k]==='goat');
+    hostOpened = options[Math.floor(Math.random()*options.length)];
+    phase = 'decide';
+    const other = [0,1,2].find(k => k!==picked && k!==hostOpened);
+    $('prompt').innerHTML = `El presentador abre la <span class="num">${hostOpened+1}</span> y hay una cabra. ¿Te quedas con la <span class="num">${picked+1}</span> o cambias a la <span class="num">${other+1}</span>?`;
+    $('stayBtn').textContent = 'Quedarte con la ' + (picked+1);
+    $('switchBtn').textContent = 'Cambiar a la ' + (other+1);
+    renderDoors();
+    $('decide').classList.remove('hidden');
+  }
+
+  function choose(doSwitch){
+    if(phase!=='decide') return;
+    const other = [0,1,2].find(k => k!==picked && k!==hostOpened);
+    const finalDoor = doSwitch ? other : picked;
+    const won = doors[finalDoor]==='car';
+    // update stats
+    if(doSwitch){ stats.sW++; if(won) stats.wW++; }
+    else { stats.sS++; if(won) stats.wS++; }
+    pushSeries();
+    phase = 'result';
+    picked = finalDoor; // highlight final choice
+    renderDoors();
+    $('decide').classList.add('hidden');
+    const r = $('result'); r.classList.remove('hidden');
+    r.innerHTML = won
+      ? `<div class="r-emoji">🎉</div><div class="r-text win">¡El coche! Ganaste${doSwitch?' cambiando':' quedándote'}.</div>`
+      : `<div class="r-emoji">🐐</div><div class="r-text lose">Una cabra. Esta vez no.</div>`;
+    $('prompt').innerHTML = `Abriste la <span class="num">${finalDoor+1}</span>.`;
+    $('again').classList.remove('hidden');
+    updateStats();
+  }
+
+  function totalGames(){ return stats.sW + stats.sS; }
+
+  function pushSeries(){
+    const sPct = stats.sW ? (stats.wW/stats.sW*100) : null;
+    const stPct = stats.sS ? (stats.wS/stats.sS*100) : null;
+    series.push({sPct, stPct});
+  }
+
+  function updateStats(){
+    $('switchPct').textContent = stats.sW ? Math.round(stats.wW/stats.sW*100)+'%' : '—';
+    $('stayPct').textContent   = stats.sS ? Math.round(stats.wS/stats.sS*100)+'%' : '—';
+    $('switchGames').textContent = stats.sW + (stats.sW===1?' partida':' partidas');
+    $('stayGames').textContent   = stats.sS + (stats.sS===1?' partida':' partidas');
+    $('slSwG').textContent = stats.sW;
+    $('slSwW').textContent = stats.wW;
+    $('slStG').textContent = stats.sS;
+    $('slStW').textContent = stats.wS;
+    drawChart();
+  }
+
+  function simulate(n){
+    for(let s=0;s<n;s++){
+      // one switch game
+      let car = Math.floor(Math.random()*3);
+      let p = Math.floor(Math.random()*3);
+      // switching wins iff initial pick was wrong
+      stats.sW++; if(p!==car) stats.wW++;
+      // one stay game
+      car = Math.floor(Math.random()*3); p = Math.floor(Math.random()*3);
+      stats.sS++; if(p===car) stats.wS++;
+      pushSeries();
+    }
+    updateStats();
+  }
+
+  function resetAll(){
+    stats = {sW:0,wW:0,sS:0,wS:0}; series = [];
+    updateStats(); newRound();
+  }
+
+  // ---- chart ----
+  function drawChart(){
+    const cv = $('chart'); const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+    const padL=46, padR=16, padT=16, padB=26;
+    const plotW = W-padL-padR, plotH = H-padT-padB;
+    const y = v => padT + plotH*(1 - v/100);
+
+    // gridlines
+    ctx.strokeStyle='#33333f'; ctx.fillStyle='#76747d';
+    ctx.lineWidth=1; ctx.font='20px Hanken Grotesk';
+    [0,25,50,75,100].forEach(v=>{
+      const yy=y(v);
+      ctx.beginPath();ctx.moveTo(padL,yy);ctx.lineTo(W-padR,yy);ctx.stroke();
+      ctx.fillText(v+'%', 6, yy+6);
+    });
+
+    const n = series.length;
+    if(n===0){ return; }
+    const xx = i => padL + (n===1?plotW/2:plotW*i/(n-1));
+
+    function line(key,color,width){
+      ctx.strokeStyle=color; ctx.lineWidth=width; ctx.beginPath();
+      let started=false;
+      for(let i=0;i<n;i++){
+        const v=series[i][key]; if(v===null) continue;
+        const px=xx(i), py=y(v);
+        if(!started){ctx.moveTo(px,py);started=true;} else ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    line('stPct','#cfcdc6',3);
+    line('sPct','#C8973F',4);
+
+    // last-point dots + labels
+    function dot(key,color){
+      for(let i=n-1;i>=0;i--){ if(series[i][key]!==null){
+        const px=xx(i),py=y(series[i][key]);
+        ctx.fillStyle=color;ctx.beginPath();ctx.arc(px,py,5,0,7);ctx.fill();
+        break;
+      }}
+    }
+    dot('stPct','#cfcdc6'); dot('sPct','#C8973F');
+  }
+  window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
